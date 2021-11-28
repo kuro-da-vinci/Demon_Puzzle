@@ -1,0 +1,252 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using System.Threading.Tasks;
+
+public class Director : MonoBehaviour
+{
+    //全ドロップ管理用配列を宣言
+    GameObject[,] o = new GameObject[5, 6];
+    public GameObject[,] Obj
+    {
+        get { return o; }
+        set { o = value; }
+    }
+    //盤面情報管理用(ドロップテクスチャ) 配列の宣言
+    int[,] f = new int[5, 6];
+    public int[,] Field
+    {
+        get { return f; }
+        set { f = value; }
+    }
+
+    // Start is called before the first frame update
+    void Start()
+    {
+        
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        
+    }
+
+    //ドロップ間の距離を図り、ドロップ入れ替え可能距離を判定する
+    public bool CheckPos(Vector2 p1,Vector2 p2)
+    {
+        //p1とp2のドロップ距離を求める(ピタゴラスの定理(a×a+b×b=c×c))
+        //p1とp2のx座標の距離(a)
+        float x = p1.x - p2.x;
+        //p1とp2のy座標の距離(b)
+        float y = p1.y - p2.y;
+        //Mathf.Sqrtで平方根を求める(2乗の逆)
+        float r = Mathf.Sqrt(x * x + y * y);
+
+        //ドロップ同士の距離が近いか
+        if(r < 100.00f)
+        {
+            return true;
+        }
+        return false;
+    }
+
+    //ドロップを入れ替え処理(obj1:タッチ中のドロップ、obj2:衝突したドロップ)
+    public void ChangePos(GameObject obj1,GameObject obj2)
+    {
+        //DropCntを入れる変数を用意し、obj1,2のコンポーネント(DropCnt)を取得
+        DropCnt d1 = obj1.GetComponent<DropCnt>();
+        DropCnt d2 = obj2.GetComponent<DropCnt>();
+        //ドロップ本体入れ替え用変数
+        GameObject tempObj;
+        //
+        Vector2 tempPos;
+        int temp;
+
+        //ドロップ本体の入れ替え処理
+        tempObj = Obj[d1.ID1, d1.ID2];
+        Obj[d1.ID1, d1.ID2] = Obj[d2.ID1, d2.ID2];
+        Obj[d2.ID1, d2.ID2] = tempObj;
+
+        //ドロップテクスチャ情報の入れ替え処理
+        temp = Field[d1.ID1, d1.ID2];
+        Field[d1.ID1, d1.ID2] = Field[d2.ID1, d2.ID2];
+        Field[d2.ID1, d2.ID2] = temp;
+
+        //ドロップ座標(初期位置)の入れ替え処理
+        tempPos = d1.P1;
+        d1.P1 = d2.P1;
+        d2.P1 = tempPos;
+        tempPos = d1.P2;
+        d1.P2 = d2.P2;
+        d2.P2 = tempPos;
+
+        //ドロップIDの入れ替え処理
+        temp = d1.ID1;
+        d1.ID1 = d2.ID1;
+        d2.ID1 = temp;
+        temp = d1.ID2;
+        d1.ID2 = d2.ID2;
+        d2.ID2 = temp;
+    }
+
+    //ドロップ削除処理
+    public void DeleteDrop()
+    {
+        //隣接ドロップカウント変数(C)、ドロップテクスチャ情報変数(t)の宣言
+        int c = 0, t = 0;
+        //横列のドロップ削除情報管理用配列の宣言
+        int[,] temp = new int[5, 6];
+        int[,] temp2 = new int[5, 6];
+
+        //横列CHKループ
+        for (int i = 0; i < 5; i++)
+        {
+            for (int j = 0; j < 6; j++)
+            {
+                //比較ドロップ情報の設定(初期値代入)
+                if (j == 0)
+                {
+                    c = 1;
+                    t = Field[i,j];
+                    continue;
+                }
+                //一つとなりのドロップが同一テクスチャの場合
+                if(t == Field[i,j])
+                {
+                    //カウントアップ
+                    c++;
+                    //同一テクスチャのドロップが3つ以上隣接している場合
+                    if(c>=3)
+                    {
+                        //削除ドロップ情報を代入
+                        temp[i, j] = c;
+                    }
+                }
+                //一つとなりのドロップが同一テクスチャではない場合
+                else
+                {
+                    //比較ドロップ情報を更新
+                    c = 1;
+                    t = Field[i,j];
+                }
+            }
+        }
+        //縦列CHKループ
+        for (int j = 0; j < 6; j++)
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                if (i == 0)
+                {
+                    c = 1;
+                    t = Field[i,j];
+                    continue;
+                }
+                if (t == Field[i, j])
+                {
+                    c++;
+                    if (c >= 3)
+                    {
+                        temp2[i, j] = c;
+                    }
+                }
+                else
+                {
+                    c = 1;
+                    t = Field[i,j];
+                }
+            }
+        }
+        //削除ドロップ情報をもとにドロップテクスチャ変更処理
+        for(int i = 0; i < 5; i++)
+        {
+            for(int j = 0; j < 6; j++)
+            {
+                //横列で3つ以上同一テクスチャのドロップが隣接している場合
+                if (temp[i, j] >= 3)
+                {
+                    //隣接しているドロップ数分ループ
+                    for(int k = j; temp[i,j] > 0; k--, temp[i,j]--)
+                    {
+                        //ドロップテクスチャ情報に削除テクスチャ情報を代入
+                        Field[i, k] = 6;
+                        //GameObjectのDropCnt内のSetをコールし削除テクスチャに変更
+                        Obj[i, k].GetComponent<DropCnt>().Set(6);
+                    }
+                }
+                //縦列で3つ以上同一テクスチャのドロップが隣接している場合
+                if (temp2[i, j] >= 3)
+                {
+                    for (int k = i; temp2[i, j] > 0; k--, temp2[i, j]--)
+                    {
+                        Field[k, j] = 6;
+                        Obj[k, j].GetComponent<DropCnt>().Set(6);
+                    }
+                }
+            }
+        }
+
+    }
+    //ドロップ落下処理
+    public void DownDrop()
+    {
+        //縦列ループ
+        for (int j = 0; j < 6; j++)
+        {
+            for(int i = 0; i < 5; i++)
+            {
+                //削除テクスチャの場合
+                if (Field[i,j] == 6)
+                {
+                    //上にドロップがある場合ループ
+                    for(int k = i; k > 0; k--)
+                    {
+                        //上にあるドロップが削除テクスチャ以外の場合
+                        if(Field[k - 1, j] != 6)
+                        {
+                            //上にあるドロップと入れ替える
+                            ChangePos(Obj[k, j], Obj[k - 1, j]);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    //ドロップ削除後のドロップ追加処理
+    public void ResetDrop()
+    {
+        for (int i =0 ; i < 5; i++)
+        {
+            for(int j = 0; j < 6; j++)
+            {
+                //削除テクスチャの場合
+                if(Field[i,j] == 6)
+                {
+                    //ランダムでドロップテクスチャを選択
+                    int type = Random.Range(0, 6);
+                    //ドロップテクスチャ情報を更新
+                    Field[i, j] = type;
+                    //GameObjectのDropCnt内のSetをコールしテクスチャを更新
+                    Obj[i, j].GetComponent<DropCnt>().Set(type);
+                }
+            }
+        }
+    }
+    //削除テクスチャ有無チェック処理
+    public bool Check()
+    {
+        for(int i = 0; i < 5; i++)
+        {
+            for(int j = 0; j < 6; j++)
+            {
+                //盤面に削除テクスチャがある場合
+                if(Field[i,j] == 6)
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+}

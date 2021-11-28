@@ -1,0 +1,51 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class Generator : MonoBehaviour
+{
+    //GameObject格納変数の宣言 DにdropGameObject、LにGameObject(1)(水平レイアウト)
+    public GameObject D, L;
+
+    // Start is called before the first frame update
+    void Start()
+    {
+        //盤面ループ(縦5行分)
+        for (int i = 0; i < 5; i++)
+        {
+            //GameObjectのLを新たなGameObjectとして複製
+            GameObject l = Instantiate(L) as GameObject;
+            //親を変更し、親のtransformを基準にする
+            l.transform.SetParent(transform);
+            //親のスケールを基準にスケール変更、Vector3.oneはVector3(1, 1, 1)と同義
+            //※Vector3型は3つのfloat型の値をまとめて保持できる型
+            l.transform.localScale = Vector3.one;
+
+            //盤面ループ(横6列分)
+            for (int j = 0; j < 6; j++)
+            {
+                //GameObjectのDを新たなGameObjectとして複製
+                GameObject d = Instantiate(D) as GameObject;
+                //親を変更し、親のtransformを基準にする
+                d.transform.SetParent(l.transform);
+                //0～5までの数字をランダムで宣言した変数へ格納(ドロップテクスチャの決定)
+                int type = Random.Range(0, 6);
+                //生成したGameObjectdのコンポーネント(DropCnt)を取得し、Set関数をコールしtype(ランダム値)を引き渡す
+                d.GetComponent<DropCnt>().Set(type);
+                //ドロップ入れ替え用のIDをセット
+                d.GetComponent<DropCnt>().ID1 = i;
+                d.GetComponent<DropCnt>().ID2 = j;
+                //GameObject[D]を探し、コンポーネント(Director)を取得し、ドロップ(d)をObjに、ドロップテクスチャ情報(type)をFieldに格納
+                GameObject.Find("D").GetComponent<Director>().Obj[i, j] = d;
+                GameObject.Find("D").GetComponent<Director>().Field[i, j] = type;
+            }
+
+        }
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        
+    }
+}
