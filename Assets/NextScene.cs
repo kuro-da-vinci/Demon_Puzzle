@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class NextScene : MonoBehaviour
 {
@@ -9,6 +10,7 @@ public class NextScene : MonoBehaviour
     //private static bool enemyFadeOut = false;
     private float enemyOutAlpha = 1.0f;
     private float enemyFadeTime = 2.0f;
+    private int sceneCount = 0;
 
     // Start is called before the first frame update
     void Start()
@@ -30,6 +32,10 @@ public class NextScene : MonoBehaviour
             {
                 FlagManager.enemyFadeOut = false;
                 enemyOutAlpha = 1.0f;
+                //画面遷移
+                sceneCount = SceneManager.GetActiveScene().buildIndex + 1;
+                FadeManager.FadeOut(sceneCount);
+                //Debug.Log(sceneCount);
             }
 
             //フェード用Imageの色・透明度設定
