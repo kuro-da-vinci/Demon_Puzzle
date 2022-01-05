@@ -58,20 +58,24 @@ public class FlagManager : MonoBehaviour
                 
                 break;
 
-            case 2: //ステージ2クリア条件:縦一列1コンボ(5コンボ以上で出現)
+            case 2: //ステージ2クリア条件:縦一列1コンボ(10コンボ以上で出現)
                 Debug.Log("コンボ数" + stageComboCount);
-                if (stageComboCount >= 5)
+                if (stageComboCount >= 10)
                 {
                     //隙の糸イベント
 
                     stage2ClearFlag = true;
+                    GameObject.Find("ConditionsText").GetComponent<Text>().enabled = false;
+                    GameObject.Find("VictoryConditions").GetComponent<Text>().enabled = true;
                 }
-                if (stage2ClearFlag == true && comboData[0, 2] >= 1)
+                if (stage2ClearFlag == true && comboData[0, 2] >= 1 || comboData[1, 2] >= 1
+                    || comboData[2, 2] >= 1 || comboData[3, 2] >= 1 || comboData[4, 2] >= 1)
                 {
                     i_behaviour.StartCoroutine(AttackEffect());
                     stageClearFlag = true;
-                    //i_behaviour.StartCoroutine(NextScene());
+                    i_behaviour.StartCoroutine(NextScene());
                     stageFlag += 1;
+                    stageComboCount = 0;
                 }
 
                 break;
