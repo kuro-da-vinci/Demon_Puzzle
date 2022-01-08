@@ -6,7 +6,7 @@ using UnityEngine;
 public class FlagManager : MonoBehaviour
 {
     //クリア条件格納用変数
-    private static int stageComboCount;
+    public static int stageComboCount;
     private static int stage1ComboCount;
     private static int stageFlag = 1;
 
@@ -42,23 +42,40 @@ public class FlagManager : MonoBehaviour
         {
             case 1: //ステージ１クリア条件:3コンボを2回
                 Debug.Log("コンボ数" + stageComboCount);
+                //3コンボ以上なら攻撃エフェクト
                 if (stageComboCount >= 3)
                 {
                     stage1ComboCount += 1;
                     i_behaviour.StartCoroutine(AttackEffect());
+
+                //3コンボ以下1コンボ以上ならHitエフェクト＆ダメージ処理
+                }else if (stageComboCount > 0)
+                {
+                    //回復以外のドロップを消していればHitエフェクト
+                    if(comboData[0,0] != 0 || comboData[1, 0] != 0 ||
+                        comboData[2, 0] != 0 || comboData[3, 0] != 0 || comboData[4, 0] != 0)
+                    {
+                        int HitNum = stageComboCount - comboData[5, 0];
+                        i_behaviour.StartCoroutine(HitEffect(HitNum));
+                    }
+                    //ダメージ処理
+                    i_behaviour.StartCoroutine(EnemyAttack());
                 }
+
                 Debug.Log("クリアカウント" + stage1ComboCount);
+                //クリア判定
                 if (stage1ComboCount >= 2)
                 {
                     stageClearFlag = true;
                     i_behaviour.StartCoroutine(NextScene());
                     stageFlag += 1;
                 }
+
                 stageComboCount = 0;
                 
                 break;
 
-            case 2: //ステージ2クリア条件:縦一列1コンボ(10コンボ以上で出現)
+            case 2: //ステージ2クリア条件:縦一列1コンボ(合計10コンボ以上で出現)
                 Debug.Log("コンボ数" + stageComboCount);
                 if (stageComboCount >= 10)
                 {
@@ -76,8 +93,19 @@ public class FlagManager : MonoBehaviour
                     i_behaviour.StartCoroutine(NextScene());
                     stageFlag += 1;
                     stageComboCount = 0;
+                }else if (stageComboCount > 0)
+                {
+                    //回復以外のドロップを消していればHitエフェクト
+                    if (comboData[0, 0] != 0 || comboData[1, 0] != 0 ||
+                        comboData[2, 0] != 0 || comboData[3, 0] != 0 || comboData[4, 0] != 0)
+                    {
+                        int HitNum = stageComboCount - comboData[5, 0];
+                        i_behaviour.StartCoroutine(HitEffect(HitNum));
+                    }
+                    //ダメージ処理
+                    i_behaviour.StartCoroutine(EnemyAttack());
                 }
-
+                
                 break;
             case 3: //緑ドロップ
                 comboData[2, 0] += 1;
@@ -211,11 +239,58 @@ public class FlagManager : MonoBehaviour
         }
     }
 
+    private static IEnumerator HitEffect(int num)
+    {
+        Transform Parentfrom = GameObject.Find("Canvas").GetComponent<Transform>();
+        GameObject Hit = (GameObject)Resources.Load("Hit");
+        //GameObject Hit = GameObject.Find("Hit");
+        float DelTime = 0.5f / num;
+
+        for (int i = 0; i < num; i++) {
+            GameObject HitCl = Instantiate(Hit) as GameObject;
+            HitCl.transform.SetParent(Parentfrom);
+            //x:-500~500 y:0~1200
+            float x = Random.Range(-500.0f, 500.0f);
+            float y = Random.Range(0.0f, 1200.0f);
+            float z = Hit.transform.localPosition.z;
+
+            HitCl.transform.localPosition = new Vector3(x, y, z);
+            HitCl.transform.localScale = Hit.transform.localScale;
+
+            HitCl.GetComponent<SpriteRenderer>().enabled = true;
+            yield return new WaitForSeconds(DelTime);
+            //HitCl.GetComponent<SpriteRenderer>().enabled = false;
+
+            /*
+            GameObject.Find("Hit").GetComponent<SpriteRenderer>().enabled = true;
+            yield return new WaitForSeconds(0.5f);
+            GameObject.Find("Hit").GetComponent<SpriteRenderer>().enabled = false;
+            */
+        }
+        //GameObject.Find("Hit(Clone)").GetComponent<SpriteRenderer>().enabled = false;
+
+        var clones = GameObject.FindGameObjectsWithTag("HitObj");
+        foreach(var clone in clones)
+        {
+            Destroy(clone);
+        }
+
+
+    }
+
     private static IEnumerator AttackEffect()
     {
         GameObject.Find("Zangeki").GetComponent<Image>().enabled = true;
         yield return new WaitForSeconds(0.5f);
         GameObject.Find("Zangeki").GetComponent<Image>().enabled = false;
+    }
+
+    private static IEnumerator EnemyAttack()
+    {
+        
+        yield return new WaitForSeconds(1.0f);
+        //ダメージ
+        GameObject.Find("Panel").GetComponent<LifeGaugeManager>().Damage(1);
     }
 
     private static IEnumerator NextScene()

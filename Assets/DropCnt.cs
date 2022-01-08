@@ -126,6 +126,7 @@ public class DropCnt : MonoBehaviour
     {
         while (true)
         {
+            //盤面ロック
             GameObject.Find("PuzllBlock").GetComponent<Image>().enabled = true;
             GameObject.Find("PuzllBlock").GetComponent<GraphicRaycaster>().enabled = true;
             //ドロップ削除処理をコール
@@ -134,10 +135,16 @@ public class DropCnt : MonoBehaviour
             if (d.Check())
             {
                 GameObject.Find("D").GetComponent<ComboSystem>().ResetComboText();
+                int ComboCount = FlagManager.stageComboCount;
                 FlagManager.ClearCHK(this);
                 FlagManager.ComboReset();
+                
                 if (!FlagManager.stageClearFlag)
                 {
+                    //ダメージ処理用時間調整
+                    if (ComboCount > 0)
+                        await Task.Delay(1500);
+                    //盤面ロック解除
                     GameObject.Find("PuzllBlock").GetComponent<GraphicRaycaster>().enabled = false;
                     GameObject.Find("PuzllBlock").GetComponent<Image>().enabled = false;
                 }
