@@ -20,6 +20,11 @@ public class Director : MonoBehaviour
         set { f = value; }
     }
 
+    //public GameObject aspectKeeper;
+    public AspectKeeper aspectKeeper;
+    //private float MagRate = GameObject.Find("Main Camera").GetComponent<AspectKeeper>().GetMagRate();
+
+
     // Start is called before the first frame update
     void Start()
     {
@@ -42,10 +47,15 @@ public class Director : MonoBehaviour
         float y = p1.y - p2.y;
         //Mathf.Sqrtで平方根を求める(2乗の逆)
         float r = Mathf.Sqrt(x * x + y * y);
+        
+        float PosRange = aspectKeeper.GetPosRange;
+
 
         //ドロップ同士の距離が近いか
-        if(r < 100.00f)
+        if (r < PosRange)
         {
+            //Debug.Log("比率" + aspectKeeper.GetMagRate);
+            //Debug.Log("距離1：" + MagRate + " 距離2" + r);
             return true;
         }
         return false;
@@ -112,7 +122,7 @@ public class Director : MonoBehaviour
             fill(x - 1, y, cl);
     }
 
-    public async void DeleteDrop()
+    public IEnumerator DeleteDrop()
     {
         //隣接ドロップカウント変数(C)、ドロップテクスチャ情報変数(t)の宣言
         int c = 0, t = 0;
@@ -286,7 +296,8 @@ public class Director : MonoBehaviour
             }
             //Debug.Log(n+"コンボ目");
             this.GetComponent<ComboSystem>().IncreaseCombo();
-            await Task.Delay(400);
+            //await Task.Delay(400);
+            yield return new WaitForSeconds(0.4f);
         }
         //Debug.Log("conbCnt"+combCnt);
     }
@@ -354,9 +365,10 @@ public class Director : MonoBehaviour
         return true;
     }
     //待機処理
-    public int Wait()
+    public float Wait()
     {
-        int waitTime = combCnt * 400+500;
+        //int waitTime = combCnt * 400+500;
+        float waitTime = combCnt * 0.4f + 0.5f;
         return waitTime;
     }
 }

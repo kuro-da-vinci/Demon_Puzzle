@@ -2,21 +2,28 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.UI;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class FlagManager : MonoBehaviour
 {
     //クリア条件格納用変数
     public static int stageComboCount;
+    public static int stageTotalComboCount;
     private static int stage1ComboCount;
-    private static int stageFlag = 1;
+    private static int stageFlag = SceneManager.GetActiveScene().buildIndex;
+    //private static int stageFlag = 1;
 
     private static bool stage2ClearFlag = false;
 
     public static bool stageClearFlag = false;
     public static bool enemyFadeOut = false;
-
-
+    public static bool gameOverFadeOut = false;
+    public static bool OpeningThreadFlag = false;
+    private static bool OpeningThreadChkFlag = false;
+    private static bool gameOverFlag = false;
     
+
+
     //private static bool stage1MiddleFlag = false;
     //private static bool stage1ClearFlag = false;
 
@@ -36,7 +43,7 @@ public class FlagManager : MonoBehaviour
     }
 
     //クリア条件CHK
-    public static void ClearCHK(MonoBehaviour i_behaviour)
+    public static void ClearCHK(MonoBehaviour i_behaviour, bool ChangeFlag)
     {
         switch (stageFlag)
         {
@@ -48,8 +55,13 @@ public class FlagManager : MonoBehaviour
                     stage1ComboCount += 1;
                     i_behaviour.StartCoroutine(AttackEffect());
 
-                //3コンボ以下1コンボ以上ならHitエフェクト＆ダメージ処理
-                }else if (stageComboCount > 0)
+                    //回復処理
+                    if (comboData[5, 0] != 0)
+                        i_behaviour.StartCoroutine(HPRecovery(comboData[5, 0]));
+
+                    //3コンボ以下1コンボ以上ならHitエフェクト＆ダメージ処理
+                }
+                else if (stageComboCount >= 0 && ChangeFlag == true)
                 {
                     //回復以外のドロップを消していればHitエフェクト
                     if(comboData[0,0] != 0 || comboData[1, 0] != 0 ||
@@ -58,17 +70,21 @@ public class FlagManager : MonoBehaviour
                         int HitNum = stageComboCount - comboData[5, 0];
                         i_behaviour.StartCoroutine(HitEffect(HitNum));
                     }
+                    //回復処理
+                    if(comboData[5,0] != 0)
+                        i_behaviour.StartCoroutine(HPRecovery(comboData[5,0]));
+
                     //ダメージ処理
-                    i_behaviour.StartCoroutine(EnemyAttack());
+                    i_behaviour.StartCoroutine(EnemyAttack(i_behaviour));
                 }
 
-                Debug.Log("クリアカウント" + stage1ComboCount);
+                //Debug.Log("クリアカウント" + stage1ComboCount);
                 //クリア判定
                 if (stage1ComboCount >= 2)
                 {
                     stageClearFlag = true;
                     i_behaviour.StartCoroutine(NextScene());
-                    stageFlag += 1;
+                    //stageFlag += 1;
                 }
 
                 stageComboCount = 0;
@@ -77,23 +93,36 @@ public class FlagManager : MonoBehaviour
 
             case 2: //ステージ2クリア条件:縦一列1コンボ(合計10コンボ以上で出現)
                 Debug.Log("コンボ数" + stageComboCount);
-                if (stageComboCount >= 10)
+                stageTotalComboCount += stageComboCount;
+
+                //勝利条件解放後、縦一列1コンボで勝利
+                if (stage2ClearFlag == true && comboData[0, 2] >= 1 || stage2ClearFlag == true && comboData[1, 2] >= 1
+                    || stage2ClearFlag == true && comboData[2, 2] >= 1 || stage2ClearFlag == true && comboData[3, 2] >= 1
+                    || stage2ClearFlag == true && comboData[4, 2] >= 1)
                 {
                     //隙の糸イベント
+                    OpeningThreadFlag = true;
 
-                    stage2ClearFlag = true;
-                    GameObject.Find("ConditionsText").GetComponent<Text>().enabled = false;
-                    GameObject.Find("VictoryConditions").GetComponent<Text>().enabled = true;
-                }
-                if (stage2ClearFlag == true && comboData[0, 2] >= 1 || comboData[1, 2] >= 1
-                    || comboData[2, 2] >= 1 || comboData[3, 2] >= 1 || comboData[4, 2] >= 1)
-                {
+                    GameObject.Find("OpeningThread").GetComponent<CreateThread>().OpeningThreadStart();
+                    i_behaviour.StartCoroutine(ThreadEnd());
+                    
+
                     i_behaviour.StartCoroutine(AttackEffect());
-                    stageClearFlag = true;
+                    //回復処理
+                    if (comboData[5, 0] != 0)
+                        i_behaviour.StartCoroutine(HPRecovery(comboData[5, 0]));
+
+                    //stageClearFlag = true;
                     i_behaviour.StartCoroutine(NextScene());
-                    stageFlag += 1;
-                    stageComboCount = 0;
-                }else if (stageComboCount > 0)
+                    //stageFlag += 1;
+                    //stageTotalComboCount = 0;
+
+                    //ダメージ処理
+                    i_behaviour.StartCoroutine(EnemyAttack(i_behaviour));
+
+                    //1コンボ以上ならHitエフェクト＆ダメージ処理
+                }
+                else if (stageComboCount >= 0 && ChangeFlag == true)
                 {
                     //回復以外のドロップを消していればHitエフェクト
                     if (comboData[0, 0] != 0 || comboData[1, 0] != 0 ||
@@ -102,10 +131,25 @@ public class FlagManager : MonoBehaviour
                         int HitNum = stageComboCount - comboData[5, 0];
                         i_behaviour.StartCoroutine(HitEffect(HitNum));
                     }
+                    //回復処理
+                    if (comboData[5, 0] != 0)
+                        i_behaviour.StartCoroutine(HPRecovery(comboData[5, 0]));
+
                     //ダメージ処理
-                    i_behaviour.StartCoroutine(EnemyAttack());
+                    i_behaviour.StartCoroutine(EnemyAttack(i_behaviour));
                 }
-                
+
+                //合計10コンボ以上で勝利条件開放
+                if (stageTotalComboCount >= 2)
+                {
+                    
+                    stage2ClearFlag = true;
+                    GameObject.Find("ConditionsText").GetComponent<Text>().enabled = false;
+                    GameObject.Find("VictoryConditions").GetComponent<Text>().enabled = true;
+                }
+
+                stageComboCount = 0;
+
                 break;
             case 3: //緑ドロップ
                 comboData[2, 0] += 1;
@@ -280,24 +324,121 @@ public class FlagManager : MonoBehaviour
 
     private static IEnumerator AttackEffect()
     {
-        GameObject.Find("Zangeki").GetComponent<Image>().enabled = true;
-        yield return new WaitForSeconds(0.5f);
-        GameObject.Find("Zangeki").GetComponent<Image>().enabled = false;
+        if (OpeningThreadFlag)
+        {
+            yield return new WaitForSeconds(5.5f);
+        }
+        Debug.Log("アタックシーン：" + OpeningThreadChkFlag);
+        if (!OpeningThreadChkFlag && !OpeningThreadFlag)
+        {
+            GameObject.Find("Zangeki").GetComponent<Image>().enabled = true;
+            yield return new WaitForSeconds(0.5f);
+            GameObject.Find("Zangeki").GetComponent<Image>().enabled = false;
+        }else if (OpeningThreadChkFlag)
+        {
+            GameObject.Find("Zangeki").GetComponent<Image>().enabled = true;
+            yield return new WaitForSeconds(0.5f);
+            GameObject.Find("Zangeki").GetComponent<Image>().enabled = false;
+        }
+        
+
     }
 
-    private static IEnumerator EnemyAttack()
+    private static IEnumerator EnemyAttack(MonoBehaviour i_behaviour)
     {
-        
-        yield return new WaitForSeconds(1.0f);
-        //ダメージ
-        GameObject.Find("Panel").GetComponent<LifeGaugeManager>().Damage(1);
+
+
+        if (OpeningThreadFlag)
+        {
+            yield return new WaitForSeconds(6.0f);
+            GameObject.Find("OpeningThreadPanel").GetComponent<Image>().enabled = false;
+            GameObject.Find("OpeningThreadPanel").GetComponent<GraphicRaycaster>().enabled = false;
+            yield return new WaitForSeconds(0.5f);
+
+        }
+
+        if (!OpeningThreadChkFlag)
+        {
+            Transform Parentfrom = GameObject.Find("Canvas").GetComponent<Transform>();
+            GameObject EHit = (GameObject)Resources.Load("EZangeki");
+            GameObject EHitCl = Instantiate(EHit) as GameObject;
+            EHitCl.transform.SetParent(Parentfrom);
+
+            float x = 0;
+            float y = -1150;
+            float z = EHit.transform.localPosition.z;
+
+            EHitCl.transform.localPosition = new Vector3(x, y, z);
+            EHitCl.transform.localScale = EHit.transform.localScale;
+
+            yield return new WaitForSeconds(0.6f);
+            EHitCl.GetComponent<SpriteRenderer>().enabled = true;
+            yield return new WaitForSeconds(0.5f);
+            //ダメージ
+            gameOverFlag = GameObject.Find("Panel").GetComponent<LifeGaugeManager>().Damage(1);
+            if (gameOverFlag == true)
+            {
+                stageClearFlag = true;
+                i_behaviour.StartCoroutine(GameOverScene());
+                stageFlag = 4;
+            }
+            //yield return new WaitForSeconds(0.3f);
+
+            EHitCl.GetComponent<SpriteRenderer>().enabled = false;
+
+        }
+        Debug.Log("エネミーアタック：" + OpeningThreadChkFlag);
+        OpeningThreadChkFlag = false;
+        OpeningThreadFlag = false;
+    }
+
+    private static IEnumerator HPRecovery(int rec)
+    {
+        yield return new WaitForSeconds(0.5f);
+        //HP回復
+        GameObject.Find("Panel").GetComponent<LifeGaugeManager>().Damage(rec*(-1));
     }
 
     private static IEnumerator NextScene()
     {
-        yield return new WaitForSeconds(1.0f);
-        enemyFadeOut = true;     
+
+        if (OpeningThreadFlag)
+        {
+            yield return new WaitForSeconds(6.0f);
+        }
+
+        if (OpeningThreadChkFlag)
+        {
+            Debug.Log("クリア");
+            //yield return new WaitForSeconds(6.0f);
+            stageClearFlag = true;
+            stageFlag += 1;
+            stageTotalComboCount = 0;
+            enemyFadeOut = true;
+        }else if (stageClearFlag)
+        {
+            stageClearFlag = true;
+            stageFlag += 1;
+            stageTotalComboCount = 0;
+            enemyFadeOut = true;
+        }
+        Debug.Log("ネクストシーン：" + OpeningThreadChkFlag);
+        Debug.Log("継続");
+
     }
+
+    private static IEnumerator GameOverScene()
+    {
+        yield return new WaitForSeconds(1.0f);
+        gameOverFadeOut = true;
+    }
+
+    private static IEnumerator ThreadEnd()
+    {
+        yield return new WaitForSeconds(5.5f);
+        OpeningThreadChkFlag = GameObject.Find("OpeningThread").GetComponent<CreateThread>().OpeningThreadEnd();
+    }
+
 
 
 }

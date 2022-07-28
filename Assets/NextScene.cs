@@ -44,6 +44,15 @@ public class NextScene : MonoBehaviour
                 enemy.GetComponent<SpriteRenderer>().color = new Color(1.0f, 1.0f, 1.0f, enemyOutAlpha);
 
             }
+
+        }
+        
+        if (FlagManager.gameOverFadeOut)
+        {
+            //‰æ–Ê‘JˆÚ
+            sceneCount = 4;
+            FadeManager.FadeOut(sceneCount);
+
         }
 
     }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using System.Threading.Tasks;
+using UnityEngine.EventSystems;
 
 public class DropCnt : MonoBehaviour
 {
@@ -53,10 +54,16 @@ public class DropCnt : MonoBehaviour
     }
 
     // Update is called once per frame
+    public int timerCount = 0;
     void Update()
     {
+
+        bool tf = GameObject.Find("Timer").GetComponent<MoveTime>().TimerFlg();
+        if (!tf)
+            touchFlag = false;
+
         //ドロップタッチ中ならループ(touchFlagがtrueならループ)
-        if(touchFlag)
+        if (touchFlag)
         {
             //posにVector2(0, 0)を格納
             var pos = Vector2.zero;
@@ -104,10 +111,14 @@ public class DropCnt : MonoBehaviour
     public void SetDrop()
     {
         touchFlag = false;
+        GameObject.Find("Timer").GetComponent<MoveTime>().TimerStop();
         //Delete関数をコール
-        Delete();
+        //Delete();
+        StartCoroutine(Delete());
+        
     }
     //ドロップが何かと衝突した場合の処理
+    public bool changeFlag = false;
     private void OnCollisionStay2D(Collision2D collision)
     {
         //ドロップタッチ中の場合
@@ -118,10 +129,12 @@ public class DropCnt : MonoBehaviour
             {
                 //ドロップを入れ替える
                 d.ChangePos(gameObject, collision.gameObject);
+                changeFlag = true;
+                GameObject.Find("Timer").GetComponent<MoveTime>().TimerStart();
             }
         }
     }
-    //Delete処理(非同期)
+    /*//Delete処理(非同期)
     private async void Delete()
     {
         while (true)
@@ -161,6 +174,62 @@ public class DropCnt : MonoBehaviour
             d.ResetDrop();
             await Task.Delay(500);
             
+        }
+    }*/
+
+    //Delete処理(コルーチン)
+    private IEnumerator Delete()
+    {
+        //Debug.Log("デリート処理");
+        while (true)
+        {
+
+            yield return new WaitForSeconds(0.1f);
+            //盤面ロック
+            Debug.Log("デリートスタート");
+            GameObject.Find("PuzllBlock").GetComponent<Image>().enabled = true;
+            GameObject.Find("PuzllBlock").GetComponent<GraphicRaycaster>().enabled = true;
+            //ドロップ削除処理をコール
+            StartCoroutine(d.DeleteDrop());
+            //盤面に削除テクスチャが無ければループを抜ける
+            if (d.Check())
+            {
+                GameObject.Find("D").GetComponent<ComboSystem>().ResetComboText();
+                int ComboCount = FlagManager.stageComboCount;
+                FlagManager.ClearCHK(this, changeFlag);
+                FlagManager.ComboReset();
+
+                //ダメージ処理用時間調整
+                if (ComboCount >= 0 && changeFlag == true) { 
+                    if (FlagManager.OpeningThreadFlag)
+                    {
+
+                        yield return new WaitForSeconds(6.5f);
+
+                    }
+                    yield return new WaitForSeconds(2.5f);
+                }                
+
+                if (!FlagManager.stageClearFlag)
+                {
+                    //盤面ロック解除
+                    GameObject.Find("PuzllBlock").GetComponent<GraphicRaycaster>().enabled = false;
+                    GameObject.Find("PuzllBlock").GetComponent<Image>().enabled = false;
+                }
+                changeFlag = false;
+                break;
+            }
+            //コンボが終わるまで待機
+            float wait = d.Wait();
+            //Debug.Log(wait);
+            yield return new WaitForSeconds(wait);
+            //ドロップ落下処理をコール
+            d.DownDrop();
+            yield return new WaitForSeconds(0.5f);
+            //ドロップ追加処理をコール
+            d.ResetDrop();
+            yield return new WaitForSeconds(0.5f);
+
         }
     }
 }

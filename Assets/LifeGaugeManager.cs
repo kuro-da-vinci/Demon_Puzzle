@@ -27,16 +27,25 @@ public class LifeGaugeManager : MonoBehaviour
     }
 
     //　ダメージ処理メソッド（全削除＆HP分作成）
-    public void Damage(int damage)
+    public bool Damage(int damage)
     {
         hp -= damage;
         //　0より下の数値にならないようにする
-        //hp = Mathf.Max(0, hp);
+        hp = Mathf.Max(0, hp);
+        hp = Mathf.Min(5, hp);
 
         if (hp >= 0)
         {
             SetLifeGauge(hp);
         }
+
+        if(hp == 0)
+        {
+            return true;
+        }
+        
+        return false;
+        
     }
     //　ダメージ処理メソッド（ダメージ数分だけアイコンを削除）
     public void Damage2(int damage)
