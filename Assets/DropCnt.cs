@@ -197,7 +197,7 @@ public class DropCnt : MonoBehaviour
                 GameObject.Find("D").GetComponent<ComboSystem>().ResetComboText();
                 int ComboCount = FlagManager.stageComboCount;
                 FlagManager.ClearCHK(this, changeFlag);
-                FlagManager.ComboReset();
+                //FlagManager.ComboReset();
 
                 //ダメージ処理用時間調整
                 if (ComboCount >= 0 && changeFlag == true) { 
@@ -208,8 +208,8 @@ public class DropCnt : MonoBehaviour
 
                     }
                     yield return new WaitForSeconds(2.5f);
-                }                
-
+                }
+                FlagManager.ComboReset();
                 if (!FlagManager.stageClearFlag)
                 {
                     //盤面ロック解除
